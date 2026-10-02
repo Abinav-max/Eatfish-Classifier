@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+.venv/
+venv/
+env/
+
+# Production build artifacts
+frontend/dist/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Android Build artifacts
+frontend/android/.gradle/
+frontend/android/build/
+frontend/android/app/build/
+frontend/android/local.properties
+frontend/android/.idea/
+frontend/android/*.iml
+frontend/android/app/*.iml
+
+# Environment & local files
+.env
+.env.local
+powershell.cmd
+backend/powershell.cmd
+frontend/powershell.cmd
+frontend/android/powershell.cmd
+
+# OS files
+.DS_Store
+Thumbs.db
