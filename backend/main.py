@@ -7,19 +7,20 @@ import numpy as np
 from PIL import Image, UnidentifiedImageError
 from fastapi import FastAPI, File, UploadFile, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 import keras
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("eatfish-api")
 
 app = FastAPI(
-    title="EatFish AI Classification API",
-    description="Real-time MobileNetV3 fish species classifier",
+    title="EatFish AI Classification Web & API",
+    description="Real-time MobileNetV3 fish species classification web app",
     version="1.0.0"
 )
 
-# CORS setup for mobile and web frontends
+# CORS setup for mobile web and APK clients
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -56,18 +57,21 @@ logger.info(f"Loading TensorFlow model from {MODEL_PATH}...")
 model = keras.models.load_model(MODEL_PATH)
 logger.info("Model loaded successfully.")
 
-# Warm-up model with dummy prediction for rapid subsequent responses
+# Warm-up model with dummy prediction
 _dummy_input = np.zeros((1, 224, 224, 3), dtype=np.float32)
 model.predict(_dummy_input, verbose=0)
 logger.info("Model warm-up completed.")
 
 
+# --- API Endpoints ---
+
 @app.get("/health", tags=["System"])
+@app.get("/api/health", tags=["System"])
 async def health_check():
     """Health check endpoint providing model status and loaded classes."""
     return {
         "status": "ok",
-        "service": "EatFish AI API",
+        "service": "EatFish AI Web & API",
         "model_loaded": True,
         "model_architecture": "MobileNetV3Small",
         "classes": CLASS_NAMES,
@@ -76,20 +80,19 @@ async def health_check():
 
 
 @app.post("/predict", tags=["Classification"])
+@app.post("/api/predict", tags=["Classification"])
 async def predict_fish(file: UploadFile = File(...)):
     """
     Accepts an uploaded image file (JPEG, PNG, WebP),
     processes it through the MobileNetV3 model,
     and returns the predicted species, confidence, and full class probability breakdown.
     """
-    # 1. Validate file received
     if not file:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No image file provided."
         )
 
-    # 2. Read bytes
     try:
         image_bytes = await file.read()
     except Exception as e:
@@ -105,11 +108,9 @@ async def predict_fish(file: UploadFile = File(...)):
             detail="Uploaded file is empty (0 bytes)."
         )
 
-    # 3. Validate image format with PIL
     try:
         image = Image.open(io.BytesIO(image_bytes))
-        image.verify()  # Verify image integrity
-        # Re-open for actual processing as verify closes or damages handle
+        image.verify()
         image = Image.open(io.BytesIO(image_bytes))
     except (UnidentifiedImageError, Exception) as e:
         logger.warning(f"Invalid image format: {e}")
@@ -118,19 +119,11 @@ async def predict_fish(file: UploadFile = File(...)):
             detail="Uploaded file is not a valid image format. Supported formats: JPEG, PNG, WebP."
         )
 
-    # 4. Preprocess image
     try:
-        # Convert to RGB (handles RGBA, grayscale, CMYK, etc.)
         if image.mode != "RGB":
             image = image.convert("RGB")
-        
-        # Resize to 224x224 required by model
         image = image.resize((224, 224), Image.Resampling.BILINEAR)
-        
-        # Convert to numpy array float32
         img_array = np.array(image, dtype=np.float32)
-        
-        # Add batch dimension: shape (1, 224, 224, 3)
         input_tensor = np.expand_dims(img_array, axis=0)
     except Exception as e:
         logger.error(f"Error during image preprocessing: {e}")
@@ -139,7 +132,6 @@ async def predict_fish(file: UploadFile = File(...)):
             detail=f"Image preprocessing error: {str(e)}"
         )
 
-    # 5. Model inference
     try:
         predictions = model.predict(input_tensor, verbose=0)[0]
     except Exception as e:
@@ -149,9 +141,7 @@ async def predict_fish(file: UploadFile = File(...)):
             detail=f"Inference computation error: {str(e)}"
         )
 
-    # 6. Build response
     try:
-        # Build probability map for all classes in class_names.json
         probabilities: Dict[str, float] = {}
         for idx, class_name in enumerate(CLASS_NAMES):
             prob = float(predictions[idx]) if idx < len(predictions) else 0.0
@@ -175,6 +165,56 @@ async def predict_fish(file: UploadFile = File(...)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error constructing prediction output."
         )
+
+
+# --- Serve Built React Web App & APK ---
+
+FRONTEND_DIST_PATHS = [
+    os.path.join(PARENT_DIR, "frontend", "dist"),
+    os.path.join(BASE_DIR, "dist"),
+    os.path.join(PARENT_DIR, "dist"),
+]
+
+FRONTEND_DIST = None
+for p in FRONTEND_DIST_PATHS:
+    if os.path.isdir(p) and os.path.isfile(os.path.join(p, "index.html")):
+        FRONTEND_DIST = p
+        break
+
+if FRONTEND_DIST:
+    logger.info(f"Mounting React Web App from: {FRONTEND_DIST}")
+    assets_dir = os.path.join(FRONTEND_DIST, "assets")
+    if os.path.isdir(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_static_or_spa(full_path: str):
+        # Allow API endpoints and docs to pass through
+        if full_path in ["health", "predict", "docs", "redoc", "openapi.json"] or full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not found")
+
+        # 1. Check if exact file exists in frontend dist
+        file_path = os.path.join(FRONTEND_DIST, full_path)
+        if full_path and os.path.isfile(file_path):
+            return FileResponse(file_path)
+
+        # 2. Check if asking for EatFish.apk in root or apk/
+        if full_path == "EatFish.apk":
+            for apk_loc in [
+                os.path.join(PARENT_DIR, "EatFish.apk"),
+                os.path.join(PARENT_DIR, "apk", "EatFish.apk"),
+            ]:
+                if os.path.isfile(apk_loc):
+                    return FileResponse(apk_loc, filename="EatFish.apk")
+
+        # 3. Default fallback to index.html for Single Page Application routing
+        index_file = os.path.join(FRONTEND_DIST, "index.html")
+        if os.path.isfile(index_file):
+            return FileResponse(index_file)
+
+        raise HTTPException(status_code=404, detail="Page not found")
+else:
+    logger.warning("Frontend dist directory not found. Serving API only.")
 
 
 if __name__ == "__main__":

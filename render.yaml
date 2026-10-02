@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: eatfish-api
+    name: eatfish-web
     env: python
     region: oregon
     plan: free
