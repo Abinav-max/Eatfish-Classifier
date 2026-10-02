@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">EatFish</string>
-    <string name="title_activity_main">EatFish</string>
-    <string name="package_name">com.eatfish.app</string>
-    <string name="custom_url_scheme">com.eatfish.app</string>
-</resources>

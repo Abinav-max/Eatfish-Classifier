@@ -1,6 +1,6 @@
-# EatFish - Mobile-First AI Fish Classification
+# EatFish - Mobile-First AI Fish Classification Web App
 
-EatFish is a minimal, professional mobile-first AI fish classification application powered by a trained **MobileNetV3Small** neural network. It accurately identifies fish species in real-time from device camera captures or photo gallery uploads.
+EatFish is a minimal, professional mobile-first AI fish classification web application powered by a trained **MobileNetV3Small** neural network. It accurately classifies fish species in real time directly inside your mobile or desktop web browser using camera snapshots or photo uploads.
 
 ---
 
@@ -9,7 +9,7 @@ EatFish is a minimal, professional mobile-first AI fish classification applicati
 Home ➔ Camera / Gallery ➔ Image Preview ➔ Analyze ➔ Prediction Result ➔ Identify Another Fish
 ```
 
-1. **Home**: EatFish branding, concise overview, real-time backend status badge, and quick start actions.
+1. **Home**: EatFish branding, concise overview, real-time AI status badge, and quick start actions.
 2. **Camera & Gallery**: Real device camera access with browser WebRTC API, front/rear camera lens switching, reticle frame guides, and gallery image selection.
 3. **Image Preview**: High-clarity preview with Retake, Change Image, and Analyze Fish actions.
 4. **Analysis**: Fast inference with loading feedback, duplicate submission guards, and error resilience.
@@ -26,24 +26,35 @@ Home ➔ Camera / Gallery ➔ Image Preview ➔ Analyze ➔ Prediction Result �
 
 ---
 
-## 🚀 Running the Application
+## ☁️ Hosting on Render (Web Application)
 
-### 1. Start the FastAPI Backend
-```bash
-# From workspace root:
-python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
-```
-Backend health check: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
+This repository is pre-configured to host the complete mobile web app and AI backend together under a single Render web service:
 
-### 2. Start the Frontend
-```bash
-cd frontend
-npm run dev
-```
-Open in browser or mobile device on local Wi-Fi: [http://localhost:5173](http://localhost:5173)
+1. Create a **New Web Service** on [Render](https://dashboard.render.com).
+2. Connect this repository: `Abinav-max/Eatfish-Classifier`.
+3. Set the following:
+   * **Runtime**: `Python 3`
+   * **Build Command**: `pip install -r requirements.txt`
+   * **Start Command**: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
+   * **Environment Variable**: `PYTHON_VERSION` = `3.11.9`
+4. Once deployed, Render gives you a live HTTPS web URL (e.g. `https://eatfish-web.onrender.com`).
+5. Open this URL in any mobile browser (Chrome / Safari on Android or iOS) to use the app immediately!
 
 ---
 
-## 📡 API Endpoints
-- `GET /health` - Checks model loading status and returns supported class list.
-- `POST /predict` - Accepts multipart form data (`file: UploadFile`) and returns predicted class, confidence, and probabilities for every class.
+## 💻 Running Locally
+
+### Option 1: One-Click Launcher (Windows)
+Double-click `run_app.bat` to launch both backend and frontend automatically.
+
+### Option 2: Manual Terminal
+```powershell
+# Terminal 1: Backend
+python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
+
+# Terminal 2: Frontend
+cd frontend
+npm run dev -- --host 0.0.0.0 --port 5173
+```
+* **Local Web App**: [http://localhost:5173](http://localhost:5173)
+* **Mobile on Wi-Fi**: `http://10.249.164.1:5173`

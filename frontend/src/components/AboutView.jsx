@@ -1,23 +1,23 @@
 import React from 'react';
 import FishLogo from './FishLogo';
-import { Cpu, Layers, CheckCircle2, AlertTriangle, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Layers, AlertTriangle, ArrowRight, Smartphone, Globe, ShieldCheck } from 'lucide-react';
 
 export default function AboutView({ onStartIdentify }) {
   const steps = [
     {
       num: '01',
       title: 'Image Capture & Preprocessing',
-      desc: 'The selected fish image is formatted into a standardized 224×224 RGB floating-point tensor.',
+      desc: 'The fish image is captured through your device browser camera or gallery and resized to a 224×224 RGB tensor.',
     },
     {
       num: '02',
       title: 'Neural Feature Extraction',
-      desc: 'MobileNetV3Small processes spatial patterns such as fin geometry, dorsal scales, and eye curvature using depthwise separable convolutions.',
+      desc: 'MobileNetV3Small evaluates morphological visual cues (fin shape, dorsal contours, scale patterns) through depthwise convolutions.',
     },
     {
       num: '03',
       title: 'Softmax Probability Scoring',
-      desc: 'The classification head evaluates the feature vector and computes calibrated probability scores across all trained fish categories.',
+      desc: 'The classification head evaluates feature vectors and generates a confidence distribution across all trained fish categories.',
     },
   ];
 
@@ -31,7 +31,7 @@ export default function AboutView({ onStartIdentify }) {
           </div>
           <div>
             <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-              About EatFish AI
+              About EatFish Web
             </h2>
             <p className="text-xs text-slate-500 font-mono">
               Architecture: MobileNetV3Small
@@ -40,7 +40,7 @@ export default function AboutView({ onStartIdentify }) {
         </div>
 
         <p className="text-sm text-slate-600 leading-relaxed">
-          EatFish is a minimal, mobile-first computer vision application engineered to classify fish species directly from camera snapshots or image uploads. It utilizes an existing trained <strong>MobileNetV3Small</strong> deep learning model optimized for high-speed edge and mobile performance.
+          EatFish is a mobile-first AI fish classification web application engineered to run smoothly in any mobile or desktop web browser. It leverages a trained <strong>MobileNetV3Small</strong> deep learning model to deliver real-time species predictions without requiring app installation.
         </p>
 
         {/* Technical Specs Pills */}
@@ -54,8 +54,8 @@ export default function AboutView({ onStartIdentify }) {
             <span className="text-xs font-bold text-slate-800 font-mono">3 Species</span>
           </div>
           <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 col-span-2 sm:col-span-1">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Inference</span>
-            <span className="text-xs font-bold text-teal-700 font-mono">&lt; 80ms Fast</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Compatibility</span>
+            <span className="text-xs font-bold text-teal-700 font-mono">Mobile & Web</span>
           </div>
         </div>
       </div>
@@ -98,25 +98,16 @@ export default function AboutView({ onStartIdentify }) {
         </div>
 
         <p className="text-xs text-amber-800 leading-relaxed">
-          This system was trained on a targeted dataset encompassing three fish categories: <strong>Anchovy</strong> (Nethili), <strong>Emperor</strong>, and <strong>Sangara</strong> (Red Snapper).
+          This system is specialized for three marine fish classes: <strong>Anchovy</strong> (Nethili), <strong>Emperor</strong>, and <strong>Sangara</strong> (Red Snapper).
         </p>
 
         <p className="text-xs text-amber-800 mt-2 leading-relaxed">
-          While MobileNetV3 achieves strong recognition on images resembling the training distribution, real-world accuracy cannot be guaranteed. Variables such as partial occlusion, unusual lighting, camera blur, or species outside the 3 trained classes will affect predictions. Always consult authoritative local marine guides for commercial or culinary decisions.
+          Model predictions indicate algorithmic similarity and are not a guaranteed biological identification. External conditions like glare, underwater distortion, or non-target species can affect results.
         </p>
       </div>
 
-      {/* CTA Buttons */}
-      <div className="space-y-3 pt-2">
-        <a
-          href="/EatFish.apk"
-          download="EatFish.apk"
-          className="w-full h-13 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-md shadow-emerald-700/20 transition-all cursor-pointer no-underline"
-          id="btn-download-apk"
-        >
-          <span>📱 Download Android App (.apk)</span>
-        </a>
-
+      {/* CTA Button */}
+      <div className="text-center pt-2">
         <button
           onClick={onStartIdentify}
           className="w-full h-13 bg-teal-700 hover:bg-teal-800 active:scale-[0.99] text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-md shadow-teal-700/20 transition-all cursor-pointer"

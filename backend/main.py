@@ -193,21 +193,12 @@ if FRONTEND_DIST:
         if full_path in ["health", "predict", "docs", "redoc", "openapi.json"] or full_path.startswith("api/"):
             raise HTTPException(status_code=404, detail="Not found")
 
-        # 1. Check if exact file exists in frontend dist
+        # 1. Check if exact static file exists in frontend dist
         file_path = os.path.join(FRONTEND_DIST, full_path)
         if full_path and os.path.isfile(file_path):
             return FileResponse(file_path)
 
-        # 2. Check if asking for EatFish.apk in root or apk/
-        if full_path == "EatFish.apk":
-            for apk_loc in [
-                os.path.join(PARENT_DIR, "EatFish.apk"),
-                os.path.join(PARENT_DIR, "apk", "EatFish.apk"),
-            ]:
-                if os.path.isfile(apk_loc):
-                    return FileResponse(apk_loc, filename="EatFish.apk")
-
-        # 3. Default fallback to index.html for Single Page Application routing
+        # 2. Fallback to index.html for Single Page Application routing
         index_file = os.path.join(FRONTEND_DIST, "index.html")
         if os.path.isfile(index_file):
             return FileResponse(index_file)

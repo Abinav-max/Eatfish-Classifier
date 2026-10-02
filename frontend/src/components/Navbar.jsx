@@ -1,6 +1,5 @@
 import React from 'react';
 import FishLogo from './FishLogo';
-import { Waves, Sparkles } from 'lucide-react';
 
 export default function Navbar({ activeScreen, setActiveScreen, isBackendOnline }) {
   const navItems = [
@@ -15,7 +14,7 @@ export default function Navbar({ activeScreen, setActiveScreen, isBackendOnline 
         {/* Brand */}
         <button
           onClick={() => setActiveScreen('home')}
-          className="flex items-center gap-2.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded-lg p-1 text-left"
+          className="flex items-center gap-2.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded-lg p-1 text-left cursor-pointer"
           aria-label="EatFish Home"
         >
           <FishLogo className="w-9 h-9 transition-transform group-hover:scale-105" />
@@ -34,7 +33,7 @@ export default function Navbar({ activeScreen, setActiveScreen, isBackendOnline 
               <button
                 key={item.id}
                 onClick={() => setActiveScreen(item.id === 'identify' ? 'capture' : item.id)}
-                className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 ${
+                className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 cursor-pointer ${
                   isActive
                     ? 'bg-white text-teal-700 shadow-sm border border-slate-200/50'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
@@ -46,23 +45,18 @@ export default function Navbar({ activeScreen, setActiveScreen, isBackendOnline 
           })}
         </nav>
 
-        {/* Top Right: Status & Server Settings Button */}
+        {/* Top Right: Status Pill */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={onOpenSettings}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-teal-50 hover:bg-teal-100/80 active:scale-95 text-teal-800 border border-teal-200/70 transition-all cursor-pointer shadow-2xs"
-            title="Click to view or edit backend server address"
-            id="btn-server-status-pill"
-          >
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-teal-50 text-teal-800 border border-teal-200/70 shadow-2xs">
             <span
               className={`w-2 h-2 rounded-full ${
                 isBackendOnline ? 'bg-emerald-500 ring-2 ring-emerald-200 animate-pulse' : 'bg-amber-400'
               }`}
             />
             <span className="font-mono text-[11px]">
-              {isBackendOnline ? 'AI Online' : 'Set Server'}
+              {isBackendOnline ? 'AI Online' : 'Connecting...'}
             </span>
-          </button>
+          </div>
         </div>
       </div>
     </header>

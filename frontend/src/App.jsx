@@ -7,16 +7,12 @@ import ImagePreview from './components/ImagePreview';
 import AnalysisLoading from './components/AnalysisLoading';
 import PredictionResult from './components/PredictionResult';
 import AboutView from './components/AboutView';
-import ServerSettingsModal from './components/ServerSettingsModal';
 import { checkBackendHealth, predictFishImage } from './api/client';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function App() {
   // Navigation state: 'home' | 'capture' | 'preview' | 'result' | 'about'
   const [activeScreen, setActiveScreen] = useState('home');
-
-  // Server settings modal state
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Image data state: { dataUrl: string, blob: Blob, source: 'camera' | 'gallery', name: string } | null
   const [selectedImage, setSelectedImage] = useState(null);
@@ -127,20 +123,6 @@ export default function App() {
           setActiveScreen(screen);
         }}
         isBackendOnline={isBackendOnline}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-      />
-
-      {/* Backend Server Settings Modal */}
-      <ServerSettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        onServerUpdated={async () => {
-          const health = await checkBackendHealth();
-          setIsBackendOnline(health.ok);
-          if (health.ok && health.data?.classes) {
-            setSupportedClasses(health.data.classes);
-          }
-        }}
       />
 
       {/* Primary Content Container */}
