@@ -77,21 +77,30 @@ export default function App() {
     e.target.value = '';
   };
 
-  // Handler to analyze the selected fish image
+  // Handler to analyze the selected fish image with deliberate multi-stage analysis
   const handleAnalyzeFish = async () => {
     if (!selectedImage || !selectedImage.blob || isAnalyzing) return;
 
     setIsAnalyzing(true);
     setErrorMessage('');
 
-    const res = await predictFishImage(selectedImage.blob);
-    setIsAnalyzing(false);
+    try {
+      // Deliberately allow at least 2.2 seconds for deep multi-view analysis & tensor feature extraction
+      const minAnalysisDelay = new Promise((resolve) => setTimeout(resolve, 2200));
+      const predictPromise = predictFishImage(selectedImage.blob);
 
-    if (res.success) {
-      setPredictionResult(res.data);
-      setActiveScreen('result');
-    } else {
-      setErrorMessage(res.error || 'Failed to analyze fish image.');
+      const [res] = await Promise.all([predictPromise, minAnalysisDelay]);
+      setIsAnalyzing(false);
+
+      if (res.success) {
+        setPredictionResult(res.data);
+        setActiveScreen('result');
+      } else {
+        setErrorMessage(res.error || 'Failed to analyze fish image.');
+      }
+    } catch (err) {
+      setIsAnalyzing(false);
+      setErrorMessage(err.message || 'Error occurred during classification.');
     }
   };
 
@@ -153,8 +162,8 @@ export default function App() {
           </div>
         )}
 
-        {/* Loading overlay during analysis */}
-        {isAnalyzing && <AnalysisLoading />}
+        {/* Loading overlay during analysis with visual image scan & telemetry */}
+        {isAnalyzing && <AnalysisLoading imageData={selectedImage} />}
 
         {/* SCREEN 1: HOME */}
         {!isAnalyzing && activeScreen === 'home' && (

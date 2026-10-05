@@ -122,9 +122,23 @@ async def predict_fish(file: UploadFile = File(...)):
     try:
         if image.mode != "RGB":
             image = image.convert("RGB")
-        image = image.resize((224, 224), Image.Resampling.BILINEAR)
-        img_array = np.array(image, dtype=np.float32)
-        input_tensor = np.expand_dims(img_array, axis=0)
+        
+        w, h = image.size
+        # Generate multiple high-quality 224x224 views for robust ensemble inference
+        # View 1: High-fidelity 224x224 resize using antialiased LANCZOS filter
+        v_main = image.resize((224, 224), Image.Resampling.LANCZOS)
+        
+        # View 2: Horizontal mirror of main view (fish orientation invariance)
+        v_flip = v_main.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+        
+        # View 3: Proportional center crop (aspect-ratio preserved fit to 224x224)
+        from PIL import ImageOps
+        v_fit = ImageOps.fit(image, (224, 224), method=Image.Resampling.LANCZOS, centering=(0.5, 0.5))
+        
+        # Prepare batch tensor for MobileNetV3Small (expects [0, 255] float32 values)
+        views = [v_main, v_flip, v_fit]
+        batch_arrays = [np.array(v, dtype=np.float32) for v in views]
+        input_tensor = np.stack(batch_arrays, axis=0)
     except Exception as e:
         logger.error(f"Error during image preprocessing: {e}")
         raise HTTPException(
@@ -133,7 +147,12 @@ async def predict_fish(file: UploadFile = File(...)):
         )
 
     try:
-        predictions = model.predict(input_tensor, verbose=0)[0]
+        # Evaluate multi-view batch through MobileNetV3 model
+        batch_predictions = model.predict(input_tensor, verbose=0)
+        
+        # Weighted ensemble: main view (50%), flipped view (30%), proportional fit (20%)
+        weights = np.array([0.5, 0.3, 0.2], dtype=np.float32)
+        predictions = np.average(batch_predictions, axis=0, weights=weights)
     except Exception as e:
         logger.error(f"Error during model prediction: {e}")
         raise HTTPException(
@@ -155,9 +174,11 @@ async def predict_fish(file: UploadFile = File(...)):
             "predicted_class": predicted_class,
             "confidence": round(confidence, 4),
             "probabilities": probabilities,
+            "model_input_size": [224, 224, 3],
+            "analysis_mode": "multiview_ensemble_lanczos",
             "filename": file.filename or "uploaded_fish.jpg"
         }
-        logger.info(f"Prediction result: {predicted_class} ({confidence * 100:.1f}%)")
+        logger.info(f"Prediction result: {predicted_class} ({confidence * 100:.1f}%) [Multi-View 224x224]")
         return JSONResponse(content=response_data)
     except Exception as e:
         logger.error(f"Error packaging response: {e}")

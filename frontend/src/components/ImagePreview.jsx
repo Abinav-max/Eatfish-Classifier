@@ -67,10 +67,12 @@ export default function ImagePreview({
           />
         </div>
 
-        {/* Source info */}
+        {/* Source and Model Spec Info */}
         <div className="flex items-center justify-between mt-3 text-xs text-slate-500 px-1">
           <span>Source: {imageData.source === 'camera' ? 'Camera Snapshot' : 'Gallery File'}</span>
-          <span className="font-mono truncate max-w-[180px]">{imageData.name}</span>
+          <span className="inline-flex items-center gap-1 font-mono text-[10px] text-teal-700 bg-teal-50 px-2 py-0.5 rounded border border-teal-200/60 font-semibold">
+            Auto-Resize: 224×224 RGB
+          </span>
         </div>
 
         {/* Action Buttons */}

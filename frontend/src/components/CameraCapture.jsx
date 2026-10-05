@@ -11,6 +11,7 @@ export default function CameraCapture({ onImageSelected, onCancel }) {
   const [facingMode, setFacingMode] = useState('environment'); // 'environment' (rear) or 'user' (front)
   const [errorMessage, setErrorMessage] = useState('');
   const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
+  const [isShutterFlashing, setIsShutterFlashing] = useState(false);
 
   // Helper to stop all active camera tracks
   const stopCameraStream = () => {
@@ -107,46 +108,75 @@ export default function CameraCapture({ onImageSelected, onCancel }) {
     startCamera(nextMode);
   };
 
-  // Capture current video frame to canvas & blob
+  // Capture frame matching the exact viewfinder framing seen by user
   const capturePhoto = () => {
     const video = videoRef.current;
     if (!video || cameraState !== 'active') return;
 
     try {
-      const width = video.videoWidth || 640;
-      const height = video.videoHeight || 480;
+      const videoWidth = video.videoWidth || 640;
+      const videoHeight = video.videoHeight || 480;
 
+      // The viewfinder container uses 4:3 aspect ratio with object-cover.
+      // We calculate the exact visible crop coordinates so peripheral background is excluded.
+      const targetAspect = 4 / 3;
+      const videoAspect = videoWidth / videoHeight;
+
+      let srcX = 0;
+      let srcY = 0;
+      let srcWidth = videoWidth;
+      let srcHeight = videoHeight;
+
+      if (videoAspect > targetAspect) {
+        // Video is wider than 4:3 -> sides are cropped off by viewfinder
+        srcWidth = videoHeight * targetAspect;
+        srcX = (videoWidth - srcWidth) / 2;
+      } else {
+        // Video is taller than 4:3 -> top/bottom are cropped off by viewfinder
+        srcHeight = videoWidth / targetAspect;
+        srcY = (videoHeight - srcHeight) / 2;
+      }
+
+      // Render to clean standard 640x480 canvas with high-quality smoothing
       const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
+      const outWidth = 640;
+      const outHeight = 480;
+      canvas.width = outWidth;
+      canvas.height = outHeight;
       const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
 
       // Flip horizontally if using front-facing user camera for natural mirror feel
       if (facingMode === 'user') {
-        ctx.translate(width, 0);
+        ctx.translate(outWidth, 0);
         ctx.scale(-1, 1);
       }
 
-      ctx.drawImage(video, 0, 0, width, height);
+      ctx.drawImage(video, srcX, srcY, srcWidth, srcHeight, 0, 0, outWidth, outHeight);
 
-      // Convert canvas to blob
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-            // Stop hardware camera immediately after capture
-            stopCameraStream();
-            onImageSelected({
-              dataUrl,
-              blob,
-              source: 'camera',
-              name: `camera_capture_${Date.now()}.jpg`,
-            });
-          }
-        },
-        'image/jpeg',
-        0.92
-      );
+      // Trigger tactile shutter flash animation
+      setIsShutterFlashing(true);
+      setTimeout(() => {
+        setIsShutterFlashing(false);
+        // Convert canvas to blob
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+              stopCameraStream();
+              onImageSelected({
+                dataUrl,
+                blob,
+                source: 'camera',
+                name: `camera_capture_${Date.now()}.jpg`,
+              });
+            }
+          },
+          'image/jpeg',
+          0.95
+        );
+      }, 120);
     } catch (err) {
       console.error('Failed to capture frame:', err);
     }
@@ -227,24 +257,39 @@ export default function CameraCapture({ onImageSelected, onCancel }) {
             }`}
           />
 
+          {/* Shutter White Flash Animation */}
+          {isShutterFlashing && (
+            <div className="absolute inset-0 bg-white pointer-events-none z-30 animate-[fadeOut_0.15s_ease-out]" />
+          )}
+
           {/* Viewfinder Target Reticle Overlay (Only when camera active) */}
           {cameraState === 'active' && (
-            <div className="absolute inset-0 pointer-events-none p-6 flex flex-col justify-between">
-              {/* Top Corners */}
-              <div className="flex justify-between">
-                <div className="w-8 h-8 border-t-2 border-l-2 border-white/80 rounded-tl-lg" />
-                <div className="w-8 h-8 border-t-2 border-r-2 border-white/80 rounded-tr-lg" />
+            <div className="absolute inset-0 pointer-events-none p-4 sm:p-6 flex flex-col justify-between z-10">
+              {/* Top Corners & Model Target Spec */}
+              <div className="flex justify-between items-start">
+                <div className="w-8 h-8 border-t-2 border-l-2 border-teal-400 rounded-tl-lg shadow-sm" />
+                <div className="px-2 py-0.5 bg-black/60 backdrop-blur-xs rounded text-[10px] font-mono text-teal-300 border border-teal-500/30">
+                  Target: 224 × 224
+                </div>
+                <div className="w-8 h-8 border-t-2 border-r-2 border-teal-400 rounded-tr-lg shadow-sm" />
               </div>
 
-              {/* Center Guidance Prompt */}
-              <div className="self-center bg-black/40 backdrop-blur-xs text-white/90 text-[11px] font-medium px-3 py-1 rounded-full border border-white/20">
-                Align fish inside frame
+              {/* Center Guidance Box & Fish Contour Prompt */}
+              <div className="self-center flex flex-col items-center gap-1.5">
+                <div className="w-48 sm:w-60 h-24 border border-dashed border-white/50 rounded-2xl flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
+                  <span className="text-white/60 text-[10px] tracking-wide uppercase font-mono">
+                    Fish Placement Area
+                  </span>
+                </div>
+                <div className="bg-black/60 backdrop-blur-xs text-white/95 text-[11px] font-medium px-3.5 py-1 rounded-full border border-white/20 shadow-md">
+                  🐟 Align full fish head-to-tail inside frame
+                </div>
               </div>
 
               {/* Bottom Corners */}
-              <div className="flex justify-between">
-                <div className="w-8 h-8 border-b-2 border-l-2 border-white/80 rounded-bl-lg" />
-                <div className="w-8 h-8 border-b-2 border-r-2 border-white/80 rounded-br-lg" />
+              <div className="flex justify-between items-end">
+                <div className="w-8 h-8 border-b-2 border-l-2 border-teal-400 rounded-bl-lg shadow-sm" />
+                <div className="w-8 h-8 border-b-2 border-r-2 border-teal-400 rounded-br-lg shadow-sm" />
               </div>
             </div>
           )}
